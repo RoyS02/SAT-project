@@ -47,26 +47,30 @@ def row_constraint(N):
 
     return clauses
 
+
+
 def box_constraint(N):
     B = int(math.sqrt(N))
     clauses = list()
     # Loop over boxes
     for b_r in range(B):
         for b_c in range(B):
-            # Loop over values
-            for v in range(1, N + 1):
-                # Loop over exact coordinates
-                for r_1 in range(b_r * B, (b_r + 1) * B - 1):
-                    for c_1 in range(b_c * B, (b_c + 1) * B - 1):
-                        # For each coordinate loop for a second coordinate we can compare to
-                        for r_2 in range(b_r * B, (b_r + 1) * B - 1):
-                            for c_2 in range(b_c * B, (b_c + 1) * B - 1):
-                                # We will save the literal if c_2 is bigger than c_1
-                                # or r_2 is bigger than r_1
-                                if r_2 > r_1 or c_2 > c_1:
-                                    clause = [varnumber(r_1,c_1,v,N) * -1,
-                                              varnumber(r_2,c_2,v,N) * -1]
-                                    clauses.append(clause)
+           #clauses.extend(inside_box(N,B,b_r,b_c))
+           for v in range(1, N + 1):
+               # Loop over exact coordinates
+               for r_1 in range(b_r * B, (b_r + 1) * B):
+                   for c_1 in range(b_c * B, (b_c + 1) * B):
+                       # For each coordinate loop for a second coordinate we can compare to
+                       for r_2 in range(b_r * B, (b_r + 1) * B):
+                           for c_2 in range(b_c * B, (b_c + 1) * B):
+                               # We will save the literal if c_2 is bigger than c_1
+                               # or r_2 is bigger than r_1
+                               var_1, var_2 = varnumber(r_1,c_1,v,N), varnumber(r_2,c_2,v,N)
+                               if var_1 < var_2:
+                                   clause = [var_1 * -1,
+                                             var_2 * -1]
+                                   clauses.append(clause)
+
     return clauses
 
 
