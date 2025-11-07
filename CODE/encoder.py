@@ -37,12 +37,21 @@ def to_cnf(input_path: str) -> Tuple[Iterable[Iterable[int]], int]:
     clauses = list()
 
     # Make list of all clauses
-    clauses.extend(at_least_one(N))
-    clauses.extend(at_most_one(N))
+    clauses.extend(exactly_one_v_per_cel(N))
+    print("exactly_one_v_per_cel number of clauses:", len(exactly_one_v_per_cel(N)))
     clauses.extend(row_constraint(N))
+    print("row_constraint number of clauses:", len(row_constraint(N)))
+    clauses.extend(column_constraint(N))
+    print("column_constraint number of clauses:", len(column_constraint(N)))
     clauses.extend(box_constraint(N))
+    print("box_constraint number of clauses:", len(box_constraint(N)))
     clauses.extend(orthogonal_constraint(N))
+    print("orthogonal_constraint number of clauses:", len(orthogonal_constraint(N)))
     clauses.extend(clues_constraint(input_path))
+    print("clues_constraint number of clauses:", len(clues_constraint(input_path)))
+    print("Total number of clauses:", len(clauses))
+
+
 
     # Calculate number of variables
     num_vars = N * N * N
@@ -92,22 +101,28 @@ def at_most_one(N):
                     clauses.append(clause_single)
     return clauses
 
+def exactly_one_v_per_cel(N):
+    # Both at most one AND at least one are true
+    clauses = at_least_one(N)
+    clauses.extend(at_most_one(N))
+    return clauses
+
 def row_constraint(N: int) -> Iterable[Iterable[int]]:
     """
     Generate clauses for row constraints.
 
     - For each value v and each row r, exactly one column c has v
     """
-    clauses = []
-    for r in range(0, N - 1):
-        for v in range(1, N):
-            clause = []
-            for c in range(0, N - 1):
-                for c2 in range(c + 1, N):
-                    var1 = var_mapping(r, c, v, N)
-                    var2 = var_mapping(r, c2, v, N)
-                    clauses.append([-var1, -var2])
-            clauses.append(clause)
+    clauses = list()
+    for r in range(N):
+        for v in range(1, N + 1):
+            clauses.append([var_mapping(r,c,v,N) for c in range(N)])
+            for c1 in range(N - 1):
+                for c2 in range(c1 + 1, N):
+                    clause_single = [var_mapping(r,c1,v,N) * -1,
+                                     var_mapping(r,c2,v,N) * -1]
+                    clauses.append(clause_single)
+
     return clauses
 
 def column_constraint(N: int) -> Iterable[Iterable[int]]:
@@ -117,15 +132,14 @@ def column_constraint(N: int) -> Iterable[Iterable[int]]:
     - For each value v and each column c, exactly one row r has v
     """
     clauses = []
-    for r in range(0, N-1):
-        for v in range(1, N):
-            clause = []
-            for c in range(0, N-1):
-                for c2 in range(c + 1, N):
+    for c in range(N):
+        for v in range(1, N+1):
+            clauses.append([var_mapping(r,c,v,N) for r in range(N)])
+            for r in range(N-1):
+                for r1 in range(r + 1, N):
                     var1 = var_mapping(r, c, v, N)
-                    var2 = var_mapping(r, c2, v, N)
+                    var2 = var_mapping(r1, c, v, N)
                     clauses.append([-var1, -var2])
-            clauses.append(clause)
     return clauses
 
 def box_constraint(N):
@@ -140,20 +154,23 @@ def box_constraint(N):
     # Loop over boxes
     for b_r in range(B):
         for b_c in range(B):
-            # Loop over values
+            #clauses.extend(inside_box(N,B,b_r,b_c))
             for v in range(1, N + 1):
-                # Loop over exact coordinates
-                for r_1 in range(b_r * B, (b_r + 1) * B - 1):
-                    for c_1 in range(b_c * B, (b_c + 1) * B - 1):
-                        # For each coordinate loop for a second coordinate we can compare to
-                        for r_2 in range(b_r * B, (b_r + 1) * B - 1):
-                            for c_2 in range(b_c * B, (b_c + 1) * B - 1):
-                                # We will save the literal if c_2 is bigger than c_1
-                                # or r_2 is bigger than r_1
-                                if r_2 > r_1 or c_2 > c_1:
-                                    clause = [var_mapping(r_1,c_1,v,N) * -1,
-                                              var_mapping(r_2,c_2,v,N) * -1]
-                                    clauses.append(clause)
+               clauses.append([var_mapping(b_r,b_c,v,N)]) 
+               # Loop over exact coordinates
+               for r_1 in range(b_r * B, (b_r + 1) * B):
+                   for c_1 in range(b_c * B, (b_c + 1) * B):
+                       # For each coordinate loop for a second coordinate we can compare to
+                       for r_2 in range(b_r * B, (b_r + 1) * B):
+                           for c_2 in range(b_c * B, (b_c + 1) * B):
+                               # We will save the literal if c_2 is bigger than c_1
+                               # or r_2 is bigger than r_1
+                               var_1, var_2 = var_mapping(r_1,c_1,v,N), var_mapping(r_2,c_2,v,N)
+                               if var_1 < var_2:
+                                   clause = [var_1 * -1,
+                                             var_2 * -1]
+                                   clauses.append(clause)
+
     return clauses
 
 def orthogonal_constraint(N: int) -> Iterable[Iterable[int]]:
@@ -164,29 +181,18 @@ def orthogonal_constraint(N: int) -> Iterable[Iterable[int]]:
       value(r, c) − value(r′, c′)̸ = 1.
     """
     clauses = []
-    # orthogonal neighbors offsets compared to cell (r, c)
-    orthogonal_cells = [(-1, 0), (1, 0), (0, -1), (0, 1)]  
-    for r in range(0, N - 1):
-        for c in range(0, N - 1):
-            for dr, dc in orthogonal_cells:
+    directions = [(0, 1),(1, 0)]  # check right and down
+    for r in range(0, N):
+        for c in range(0, N):
+            for dr, dc in directions:
                 r2, c2 = r + dr, c + dc 
                 if 0 <= r2 < N and 0 <= c2 < N:
-                    # IF ABSOLUTE DIFFERENCE IS 1
-                    for v in range(1, N + 1):
-                        var = var_mapping(r, c, v, N)
-                        if v + 1 <= N: 
-                            var_neighborPos = var_mapping(r2, c2, v + 1, N)
-                            clauses.append([-var, -var_neighborPos])
-                        if v - 1 >= 1:  
-                            var_neighborNeg = var_mapping(r2, c2, v - 1, N)
-                            clauses.append([-var, -var_neighborNeg])
-                    """
-                    # IF DIFFERENCE IS 1
-                    for v in range (1, N):
+                    for v in range(1, N):
                         var = var_mapping(r, c, v, N)
                         var_neighborPos = var_mapping(r2, c2, v + 1, N)
                         clauses.append([-var, -var_neighborPos])
-                    """
+                        var_neighborNeg = var_mapping(r2, c2, v - 1, N)
+                        clauses.append([-var, -var_neighborNeg])
     return clauses
 
 def clues_constraint(sudoku: str) -> Iterable[Iterable[int]]:
@@ -212,5 +218,5 @@ def clues_constraint(sudoku: str) -> Iterable[Iterable[int]]:
                 c = num
                 var = var_mapping(r, c, v, N)
                 clauses.append([var])
-        print(clauses)
+        # print(clauses)
     return clauses
