@@ -1,5 +1,8 @@
 # Hallo wereld
 import math
+from typing import Tuple
+from encoder import to_cnf
+
 def varnumber(r, c, v, N) -> int:
     return N * N * r + N * c + v
 
@@ -73,18 +76,67 @@ def box_constraint(N):
 
     return clauses
 
+def delete_tautologies(clause: list[int]) -> Tuple[list[int], int]:
+    taut_count = 0
+    for literal in clause:
+        opposite_literal = literal * -1
+        if opposite_literal in clause:
+            # Delete clause and clause -1 from list
+            clause.remove(literal)
+            clause.remove(opposite_literal)
+            taut_count += 1
+    return clause, taut_count
+
+def pure_literal(clause: list[int], clauses: list[list[int]]) -> list[int]:
+    pass
+
+def unit_clause(clause: list[int], clauses: list[list[int]]) -> Tuple[list[list[int]], int, int]:
+    if len(clause) == 1:
+        truth = clause[0]
+        clauses.remove(clause)
+        unit = 1
+    else:
+        unit = 0
+        truth = 0
+    return clauses, truth, unit
 
 
+
+def simplify(clauses: list[list[int]]) -> list[list[int]]:
+    # CNF moet gesolved worden:
+    truth_list = list()
+    # Step 1: simplify
+    terminate = 0
+    while not terminate: # Terminate when clauses is simplified
+        taut_tot = 0
+        pure_tot = 0
+        unit_tot = 0
+        for clause in clauses:
+            # Tautology check
+            clause,taut = delete_tautologies(clause)
+            taut_tot += taut
+
+            # Pure Literal check -> take out if to expensive
+
+            # Unit clause check
+
+        if taut_tot == 0 and pure_tot == 0 and unit_tot == 0: # ... because then nothing more to simplify
+            terminate = 1
+
+
+
+
+
+
+
+    # Loop door de clauses totdat terminate condition is met
+        # Geen clauses meer -> SAT
+        # Delete tautologies
+        # Pure literal (dus komt alleen positief of negatief voor in de hele CNF) (IS very expensive)
+        # Haal alle units uit de clauses en sla deze op in de lijst met truth statements
+        #
+    return clauses
 
 
 if __name__== "__main__":
-    #print(exactly_one_v_per_cel(9))
-    #print(exactly_one_v_per_cel(9))
-    print(range(1,25))
-    for i in range(1,25): print(i)
-    #clauses = exactly_one_v_per_cel(4)
-
-    #clauses = (row_constraint(4))
-    clauses = box_constraint(4)
-    for i in clauses:
-        print(i)
+    to_cnf("example_n9.txt")
