@@ -38,26 +38,38 @@ def to_cnf(input_path: str) -> Tuple[Iterable[Iterable[int]], int]:
 
     # Make list of all clauses
     clauses.extend(exactly_one_v_per_cel(N))
-    print("exactly_one_v_per_cel number of clauses:", len(exactly_one_v_per_cel(N)))
+    # print("exactly_one_v_per_cel number of clauses:", len(exactly_one_v_per_cel(N)))
     clauses.extend(row_constraint(N))
-    print("row_constraint number of clauses:", len(row_constraint(N)))
+    # print("row_constraint number of clauses:", len(row_constraint(N)))
     clauses.extend(column_constraint(N))
-    print("column_constraint number of clauses:", len(column_constraint(N)))
+    # print("column_constraint number of clauses:", len(column_constraint(N)))
     clauses.extend(box_constraint(N))
-    print("box_constraint number of clauses:", len(box_constraint(N)))
+    # print("box_constraint number of clauses:", len(box_constraint(N)))
     clauses.extend(orthogonal_constraint(N))
-    print("orthogonal_constraint number of clauses:", len(orthogonal_constraint(N)))
+    # print("orthogonal_constraint number of clauses:", len(orthogonal_constraint(N)))
     clauses.extend(clues_constraint(input_path))
-    print("clues_constraint number of clauses:", len(clues_constraint(input_path)))
-    print("Total number of clauses:", len(clauses))
-
-
+    # print("clues_constraint number of clauses:", len(clues_constraint(input_path)))
+    # print("Total number of clauses:", len(clauses))
 
     # Calculate number of variables
     num_vars = N * N * N
-
+    clauses = check_for_duplicates(clauses)
+    # print("Number of unique clauses after removing duplicates:", len(clauses))
     f.close()
     return clauses, num_vars
+
+def check_for_duplicates(clauses):
+    """
+    Check for duplicate clauses and remove to save space
+    """
+    duplicate_clauses = set()
+    unique_clauses = []
+    for c in clauses:
+        clause = tuple(sorted(c))
+        if clause not in duplicate_clauses:
+            duplicate_clauses.add(clause)
+            unique_clauses.append(list(clause))
+    return unique_clauses
 
 def var_mapping(r: int, c: int, v: int, N: int) -> int:
     """
@@ -154,11 +166,14 @@ def box_constraint(N):
     # Loop over boxes
     for b_r in range(B):
         for b_c in range(B):
+            cells = [(r, c)
+                for r in range(b_r * B, (b_r + 1) * B)
+                for c in range(b_c * B, (b_c + 1) * B)]
             #clauses.extend(inside_box(N,B,b_r,b_c))
             for v in range(1, N + 1):
-               clauses.append([var_mapping(b_r,b_c,v,N)]) 
-               # Loop over exact coordinates
-               for r_1 in range(b_r * B, (b_r + 1) * B):
+                clauses.append([var_mapping(r, c, v, N) for (r, c) in cells])
+                # Loop over exact coordinates
+                for r_1 in range(b_r * B, (b_r + 1) * B):
                    for c_1 in range(b_c * B, (b_c + 1) * B):
                        # For each coordinate loop for a second coordinate we can compare to
                        for r_2 in range(b_r * B, (b_r + 1) * B):
@@ -186,13 +201,10 @@ def orthogonal_constraint(N: int) -> Iterable[Iterable[int]]:
         for c in range(0, N):
             for dr, dc in directions:
                 r2, c2 = r + dr, c + dc 
-                if 0 <= r2 < N and 0 <= c2 < N:
+                if r2 < N and c2 < N:
                     for v in range(1, N):
-                        var = var_mapping(r, c, v, N)
-                        var_neighborPos = var_mapping(r2, c2, v + 1, N)
-                        clauses.append([-var, -var_neighborPos])
-                        var_neighborNeg = var_mapping(r2, c2, v - 1, N)
-                        clauses.append([-var, -var_neighborNeg])
+                        clauses.append([-var_mapping(r, c, v, N),-var_mapping(r2, c2, v + 1, N)])
+                        clauses.append([-var_mapping(r, c, v + 1, N),-var_mapping(r2, c2, v, N)])
     return clauses
 
 def clues_constraint(sudoku: str) -> Iterable[Iterable[int]]:
@@ -209,9 +221,8 @@ def clues_constraint(sudoku: str) -> Iterable[Iterable[int]]:
     N = len(splitlines)
     for r in range(N):
         line = splitlines[r]
-        cleanLine = line.replace(" ", "")
-        intCleanLine = [int(num) for num in cleanLine]
-        # print(f"Integer Line {r}: {(intCleanLine)}")
+        splitLine = line.split()
+        intCleanLine = [int(num) for num in splitLine]
         for num in range(N):
             v = intCleanLine[num]
             if v != 0:
@@ -219,4 +230,5 @@ def clues_constraint(sudoku: str) -> Iterable[Iterable[int]]:
                 var = var_mapping(r, c, v, N)
                 clauses.append([var])
         # print(clauses)
+    f.close()
     return clauses
