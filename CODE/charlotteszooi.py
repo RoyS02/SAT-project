@@ -88,12 +88,37 @@ def delete_tautologies(clause: list[int]) -> Tuple[list[int], int]:
     return clause, taut_count
 
 def pure_literal(clause: list[int], clauses: list[list[int]]) -> list[int]:
-    pass
+    # Nog veel werk aan de winkel
+    for literal in clause:
+        pure = True
+        neg_lit = literal * -1
+        for loop_clause in clauses:
+            if neg_lit in loop_clause:
+                pure = False
+                exit()
+        literal
+    return clauses
+
+
 
 def unit_clause(clause: list[int], clauses: list[list[int]]) -> Tuple[list[list[int]], int, int]:
-    if len(clause) == 1:
+    if len(clause) == 1 and not clause[0] == 0:
         truth = clause[0]
         clauses.remove(clause)
+        for clause_loop in clauses:
+            if truth in clause_loop:
+                clauses.remove(clause_loop)
+            elif truth * -1 in clause_loop:
+                clause_loop.remove(truth * -1)
+
+
+        # Take clause out of all clauses
+        """for clause_loop in clauses:
+            if truth in clause_loop:
+                clause_loop.remove(truth)
+            elif truth * -1 in clause_loop:
+                clause_loop.remove(truth * -1)
+        """
         unit = 1
     else:
         unit = 0
@@ -112,31 +137,38 @@ def simplify(clauses: list[list[int]]) -> list[list[int]]:
         pure_tot = 0
         unit_tot = 0
         for clause in clauses:
+
             # Tautology check
             clause,taut = delete_tautologies(clause)
             taut_tot += taut
 
-            # Pure Literal check -> take out if to expensive
+            # Pure Literal check
 
             # Unit clause check
+            clauses, truth, unit = unit_clause(clause,clauses)
+            unit_tot += unit
+            if not truth == 0:
+                truth_list.append(truth)
+
+
+        print(f"taut_tot: {taut_tot}, pure_tot: {pure_tot}, unit_tot: {unit_tot}")
+        print(f"truth_list: {truth_list}")
 
         if taut_tot == 0 and pure_tot == 0 and unit_tot == 0: # ... because then nothing more to simplify
             terminate = 1
 
 
-
-
-
-
-
-    # Loop door de clauses totdat terminate condition is met
-        # Geen clauses meer -> SAT
-        # Delete tautologies
-        # Pure literal (dus komt alleen positief of negatief voor in de hele CNF) (IS very expensive)
-        # Haal alle units uit de clauses en sla deze op in de lijst met truth statements
-        #
     return clauses
 
 
 if __name__== "__main__":
-    to_cnf("example_n9.txt")
+    #clauses, n = to_cnf("example_n9.txt")
+    #print(clauses)
+    # test 1
+    clauses = [[9, 3],[9],[4,2],[-9,4],[5,7]] # Truth list is 9,4,3
+    #print(n)
+    print(len(clauses))
+    for clause in clauses: print(clause)
+    clauses = simplify(clauses)
+    print("hey")
+    for clause in clauses: print(f"clause: {clause}")
