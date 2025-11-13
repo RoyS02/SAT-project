@@ -76,41 +76,66 @@ def box_constraint(N):
 
     return clauses
 
-def delete_tautologies(clause: list[int]) -> Tuple[list[int], int]:
+def delete_tautologies(clause: list[int], clauses: list[list[int]]) -> int:
     taut_count = 0
     for literal in clause:
         opposite_literal = literal * -1
         if opposite_literal in clause:
-            # Delete clause and clause -1 from list
-            clause.remove(literal)
-            clause.remove(opposite_literal)
+            # delete clause from clause list
+            #clauses.remove(clause)
             taut_count += 1
-    return clause, taut_count
+            return taut_count
+    return taut_count
 
-def pure_literal(clause: list[int], clauses: list[list[int]]) -> list[int]:
+def pure_literal(clause: list[int], clauses: list[list[int]]) -> Tuple[list[list[int]], list[int]]:
     # Nog veel werk aan de winkel
+    truth_list = []
+
     for literal in clause:
         pure = True
         neg_lit = literal * -1
+        # Check if only negative or positive in other clauses
         for loop_clause in clauses:
+            # Finding prove of literal not being pure
             if neg_lit in loop_clause:
                 pure = False
-                exit()
-        literal
-    return clauses
+                break
+        # Take literal out of all clauses if it is pure
+        if pure:
+            print(f"literal {literal} is seen as pure")
+            if not literal in truth_list:
+                truth_list.append(literal)
+            for loop_clause in clauses[:]:
+                if literal in loop_clause:
+                    clauses.remove(loop_clause)
+
+    return clauses, truth_list
 
 
 
 def unit_clause(clause: list[int], clauses: list[list[int]]) -> Tuple[list[list[int]], int, int]:
     if len(clause) == 1 and not clause[0] == 0:
         truth = clause[0]
-        clauses.remove(clause)
-        for clause_loop in clauses:
+        #clauses.remove(clause)
+        """
+        for clause_loop in clauses[:]:
+            opposite = truth * -1
             if truth in clause_loop:
                 clauses.remove(clause_loop)
-            elif truth * -1 in clause_loop:
-                clause_loop.remove(truth * -1)
+            elif opposite in clause_loop:
+                clause_loop.remove(opposite)        
+        """
+        new_clauses = []
+        opposite = -truth
 
+        for clause in clauses:
+            if truth in clause:
+                continue  # deze clause is voldaan, dus overslaan
+            if opposite in clause:
+                clause = [lit for lit in clause if lit != opposite]
+            new_clauses.append(clause)
+
+        clauses = new_clauses
 
         # Take clause out of all clauses
         """for clause_loop in clauses:
@@ -136,39 +161,60 @@ def simplify(clauses: list[list[int]]) -> list[list[int]]:
         taut_tot = 0
         pure_tot = 0
         unit_tot = 0
-        for clause in clauses:
+        # maybe a clauses copy?
+        for clause in clauses[:]:
+
+            # We are deleting from the clauses list so skipp a clause that has already been delete
+            if not clause in clauses: continue
 
             # Tautology check
-            clause,taut = delete_tautologies(clause)
+            taut = delete_tautologies(clause, clauses)
             taut_tot += taut
-
-            # Pure Literal check
+            if taut == 1:
+                clauses.remove(clause)
+                continue
+            # Only continue in this clause if clause is not a tautology
 
             # Unit clause check
-            clauses, truth, unit = unit_clause(clause,clauses)
+            clauses, truth, unit = unit_clause(clause, clauses)
             unit_tot += unit
-            if not truth == 0:
-                truth_list.append(truth)
+            if not truth == 0: # Unit literal was found
+                if not truth in truth_list:
+                    truth_list.append(truth)
+                    continue # Only pure literal check needed if no unit literal was found -> no double work
 
+            # Pure Literal check
+            clauses, truth = pure_literal(clause, clauses)
+            pure_tot += len(truth)
+            if not truth == list():
+                for truth_item in truth_list:
+                    if not truth_item in truth:
+                        truth_list.append(truth_item)
 
+        # Check if all are taken out of clauses
         print(f"taut_tot: {taut_tot}, pure_tot: {pure_tot}, unit_tot: {unit_tot}")
-        print(f"truth_list: {truth_list}")
+        print(f"truth_list: {truth_list} ")
+        print(f"and clauses: {clauses}")
 
         if taut_tot == 0 and pure_tot == 0 and unit_tot == 0: # ... because then nothing more to simplify
             terminate = 1
 
 
-    return clauses
+    return clauses, truth_list
 
 
 if __name__== "__main__":
     #clauses, n = to_cnf("example_n9.txt")
     #print(clauses)
     # test 1
-    clauses = [[9, 3],[9],[4,2],[-9,4],[5,7]] # Truth list is 9,4,3
+    clauses = [[9, 3],[9],[4,2],[-9,4],[5,7],[1,-1],[1,3],[-2,-7]] # Truth list is 9,4,3,5
+
     #print(n)
-    print(len(clauses))
+    print(f"lenght of clauses: {len(clauses)}")
     for clause in clauses: print(clause)
-    clauses = simplify(clauses)
+    print("hello?")
+    clauses, truth_list = simplify(clauses)
+
     print("hey")
     for clause in clauses: print(f"clause: {clause}")
+    print(f"truth_list: {truth_list}")
