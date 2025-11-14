@@ -216,10 +216,10 @@ def simplify(clauses: list[list[int]]) -> list[list[int]]:
 
 
 if __name__== "__main__":
-    #clauses, n = to_cnf("example_n9.txt")
+    clauses, n = to_cnf("example_n9.txt")
     #print(clauses)
     # test 1
-    clauses = [[9, 3],[9],[4,2],[-9,4],[5,7],[1,-1],[1,3],[-2,-7]] # Truth list is 9,4,3,5
+    #clauses = [[9, 3],[9],[4,2],[-9,4],[5,7],[1,-1],[1,3],[-2,-7],[-7,-5]] # Truth list is 9,4,3,5
 
     #print(n)
     print(f"lenght of clauses: {len(clauses)}")
@@ -228,5 +228,27 @@ if __name__== "__main__":
     clauses, truth_list = simplify(clauses)
 
     print("hey")
-    for clause in clauses: print(f"clause: {clause}")
-    print(f"truth_list: {truth_list}")
+    for clause in clauses:
+        if clause > 0: print(f"clause: {clause}")
+    #print(f"truth_list: {truth_list}")
+
+    check = 1
+    # check if negative and positive in
+    for item in truth_list:
+        opposite = item * -1
+        if opposite in truth_list:
+            print("there is a contradiction in the truthlist")
+            check = 0
+            break
+
+    if check == 1:
+        print("Truth_list has no contradictions")
+
+    sudoku_values = list()
+    for item in truth_list:
+        if item > 0:
+            sudoku_values.append(item)
+    print(f"sudoku_values: {sudoku_values}")
+    print(f"the length of sudoku_values is: {len(sudoku_values)}")
+
+
