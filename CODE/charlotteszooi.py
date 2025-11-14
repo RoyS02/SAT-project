@@ -163,7 +163,7 @@ def unit_clause(clause: list[int], clauses: list[list[int]]) -> Tuple[list[list[
 
 
 
-def simplify(clauses: list[list[int]]) -> list[list[int]]:
+def simplify(clauses: list[list[int]]) -> Tuple[list[list[int]], list[int]]:
     # CNF moet gesolved worden:
     truth_list = list()
     # Step 1: simplify
@@ -211,15 +211,130 @@ def simplify(clauses: list[list[int]]) -> list[list[int]]:
         if taut_tot == 0 and pure_tot == 0 and unit_tot == 0: # ... because then nothing more to simplify
             terminate = 1
 
-
     return clauses, truth_list
+
+def list_only_positive(mixed_list: list[int]) -> list[int]:
+    pos_list = []
+    for item in mixed_list:
+        if item > 0:
+            pos_list.append(item)
+    return pos_list
+
+
+
+def unsat_or_sat(clauses: list[list[int]], truth_list: list[int], N: int) -> int:
+    # We are unsure if it is solved
+    solved = 0
+
+    ## UNSAT
+    # Empty clause
+    for clause in clauses:
+        if clause == []:
+            solved = -1
+            return solved
+
+    # Contradiction in truthlist makes it unsat
+    for item in truth_list:
+        opposite = item * -1
+        if opposite in truth_list:
+            solved = -1
+            return solved
+
+    ## SAT
+    # If all the values are placed in the sudoku its SAT
+    sudoku_list = list_only_positive(truth_list)
+    if len(sudoku_list) == N * N:
+        solved = 1
+        return solved
+
+    # if the clauses list is empty, its SAT
+    if clauses == []:
+        solved = 1
+        return solved
+    return solved
+
+import copy
+
+
+def splitter(clauses):
+    # Deep copy, because we are recursive
+    fake_true_clauses = copy.deepcopy(clauses)
+
+    # find fake_true_clause
+    fake_true_clause = find_best_clause_for_split(clauses)
+
+    # Add fake_true_clause to fake_clauses
+    fake_true_clauses.append(fake_true_clause)
+
+    fake_true_clauses, fake_true_truth_list = simplify(fake_true_clauses)
+    return fake_true_clause, fake_true_truth_list, fake_true_clauses
+
+def dpll_main(clauses, N) -> bool:
+    # First simplify
+    clauses, truth_list = simplify(clauses)
+
+    # First check if we found truth with only simplify
+    SATTER = unsat_or_sat(clauses, truth_list, N)
+
+    if SATTER == 1:
+        return True
+    elif SATTER == -1:
+        return False
+
+    # Splitter needed
+    fake_true_clause, fake_true_truth_list, fake_true_clauses = splitter(clauses, truth_list)
+
+    SATTER = unsat_or_sat(fake_true_clauses, fake_true_truth_list, N)
+
+    if SATTER == 1: #SAT
+        # fake_true_clauses and fake_true_truth_list kloppen SAT!
+        return True
+    elif SATTER == -1:
+        # It was unsat, so fake_true_clause CANNOT be TRUE
+        clauses.append(-fake_true_clause)
+        return dpll_main(clauses, N) # Can go on forever?
+
+    else: # unsure -> will loop on and on?
+        next_clause, next_truth, next_clauses = splitter(clauses, truth_list)
+        return dpll_main(next_clauses, N)
+
+
+
+
+import copy
+
+def dpll(clauses, N) -> bool:
+    # Simplify current clauses
+    clauses, truth_list = simplify(clauses)
+    dpll(clauses, 9)
+
+    # Check SAT / UNSAT / unsure
+    SATTER = unsat_or_sat(clauses, truth_list, N)
+
+    if SATTER == 1:       # SAT
+        return True
+    if SATTER == -1:      # UNSAT
+        return False
+
+    # try different
+    try_clause, try_truth_list, try_clauses = splitter(clauses)
+
+    # if try clause works -> SAT
+    if dpll(try_clauses, N):
+        return True
+
+    # if try clause does not work -> not SAT but
+    try_opposite_clauses = copy.deepcopy(clauses)
+    try_opposite_clauses.append([-try_clause])   #
+    return dpll(try_opposite_clauses, N)
+
 
 
 if __name__== "__main__":
     clauses, n = to_cnf("example_n9.txt")
     #print(clauses)
     # test 1
-    #clauses = [[9, 3],[9],[4,2],[-9,4],[5,7],[1,-1],[1,3],[-2,-7],[-7,-5]] # Truth list is 9,4,3,5
+    #clauses = [[9, 3],[9],[4,2],[-9,4],[5,7],[1,-1],[1,3],[-2,-7],[-7,-5]]
 
     #print(n)
     print(f"lenght of clauses: {len(clauses)}")
@@ -250,5 +365,12 @@ if __name__== "__main__":
             sudoku_values.append(item)
     print(f"sudoku_values: {sudoku_values}")
     print(f"the length of sudoku_values is: {len(sudoku_values)}")
+    SAT = unsat_or_sat(clauses, truth_list, 9)
+    if SAT == 1:
+        print("its SAT")
+    elif SAT == -1:
+        print("its unSAT")
+    else:
+        print("unsure")
 
 
