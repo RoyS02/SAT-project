@@ -255,7 +255,6 @@ def unsat_or_sat(clauses: list[list[int]], truth_list: list[int], N: int) -> int
 
 import copy
 
-from roy.ipynb import
 
 def splitter(clauses):
     # Deep copy, because we are recursive
