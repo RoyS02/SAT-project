@@ -100,6 +100,7 @@ def pure_literal(clause: list[int], clauses: list[list[int]]) -> Tuple[list[list
             if neg_lit in loop_clause:
                 pure = False
                 break
+
         # Take literal out of all clauses if it is pure
         if pure:
             print(f"literal {literal} is seen as pure")
@@ -108,12 +109,22 @@ def pure_literal(clause: list[int], clauses: list[list[int]]) -> Tuple[list[list
             for loop_clause in clauses[:]:
                 if literal in loop_clause:
                     clauses.remove(loop_clause)
+            break
 
     return clauses, truth_list
 
 
 
 def unit_clause(clause: list[int], clauses: list[list[int]]) -> Tuple[list[list[int]], int, int]:
+    """
+    :param clause:
+    :param clauses:
+    :return:
+    clauses
+    truth: the number that is now deemed true -> 0 if none
+    unit: if there was a unit -> might be redundend
+    """
+
     if len(clause) == 1 and not clause[0] == 0:
         truth = clause[0]
         #clauses.remove(clause)
@@ -157,10 +168,12 @@ def simplify(clauses: list[list[int]]) -> list[list[int]]:
     truth_list = list()
     # Step 1: simplify
     terminate = 0
+
     while not terminate: # Terminate when clauses is simplified
         taut_tot = 0
         pure_tot = 0
         unit_tot = 0
+
         # maybe a clauses copy?
         for clause in clauses[:]:
 
@@ -172,8 +185,7 @@ def simplify(clauses: list[list[int]]) -> list[list[int]]:
             taut_tot += taut
             if taut == 1:
                 clauses.remove(clause)
-                continue
-            # Only continue in this clause if clause is not a tautology
+                continue # skipp this clause if we have already determined it a tautology
 
             # Unit clause check
             clauses, truth, unit = unit_clause(clause, clauses)
@@ -187,8 +199,8 @@ def simplify(clauses: list[list[int]]) -> list[list[int]]:
             clauses, truth = pure_literal(clause, clauses)
             pure_tot += len(truth)
             if not truth == list():
-                for truth_item in truth_list:
-                    if not truth_item in truth:
+                for truth_item in truth:
+                    if truth_item not in truth_list:
                         truth_list.append(truth_item)
 
         # Check if all are taken out of clauses
@@ -204,10 +216,10 @@ def simplify(clauses: list[list[int]]) -> list[list[int]]:
 
 
 if __name__== "__main__":
-    #clauses, n = to_cnf("example_n9.txt")
+    clauses, n = to_cnf("example_n9.txt")
     #print(clauses)
     # test 1
-    clauses = [[9, 3],[9],[4,2],[-9,4],[5,7],[1,-1],[1,3],[-2,-7]] # Truth list is 9,4,3,5
+    #clauses = [[9, 3],[9],[4,2],[-9,4],[5,7],[1,-1],[1,3],[-2,-7],[-7,-5]] # Truth list is 9,4,3,5
 
     #print(n)
     print(f"lenght of clauses: {len(clauses)}")
@@ -216,5 +228,27 @@ if __name__== "__main__":
     clauses, truth_list = simplify(clauses)
 
     print("hey")
-    for clause in clauses: print(f"clause: {clause}")
-    print(f"truth_list: {truth_list}")
+    for clause in clauses:
+        if clause > 0: print(f"clause: {clause}")
+    #print(f"truth_list: {truth_list}")
+
+    check = 1
+    # check if negative and positive in
+    for item in truth_list:
+        opposite = item * -1
+        if opposite in truth_list:
+            print("there is a contradiction in the truthlist")
+            check = 0
+            break
+
+    if check == 1:
+        print("Truth_list has no contradictions")
+
+    sudoku_values = list()
+    for item in truth_list:
+        if item > 0:
+            sudoku_values.append(item)
+    print(f"sudoku_values: {sudoku_values}")
+    print(f"the length of sudoku_values is: {len(sudoku_values)}")
+
+
