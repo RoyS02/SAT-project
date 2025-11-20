@@ -253,7 +253,18 @@ def unsat_or_sat(clauses: list[list[int]], truth_list: list[int], N: int) -> int
         return solved
     return solved
 
-import copy
+from collections import defaultdict
+
+def choose_literal_dlis(clauses: List[List[int]]) -> int:
+    counts: Dict[int, int] = defaultdict(int)
+    for clause in clauses:
+        for literal in clause:
+            counts[literal] += 1
+
+    mostLiterals = max(counts, key=counts.get)
+    amount = counts[mostLiterals]
+    # print("Most occurring literal:", mostLiterals, "with amount:", amount)
+    return mostLiterals
 
 
 def splitter(clauses):
@@ -261,7 +272,7 @@ def splitter(clauses):
     fake_true_clauses = copy.deepcopy(clauses)
 
     # find fake_true_clause
-    fake_true_clause = find_best_clause_for_split(clauses)
+    fake_true_clause = choose_literal_dlis(clauses)
 
     # Add fake_true_clause to fake_clauses
     fake_true_clauses.append(fake_true_clause)
@@ -269,7 +280,7 @@ def splitter(clauses):
     fake_true_clauses, fake_true_truth_list = simplify(fake_true_clauses)
     return fake_true_clause, fake_true_truth_list, fake_true_clauses
 
-def dpll_main(clauses, N) -> bool:
+def dpll_main(clauses, N, i = 0) -> bool:
     # First simplify
     clauses, truth_list = simplify(clauses)
 
@@ -282,7 +293,7 @@ def dpll_main(clauses, N) -> bool:
         return False
 
     # Splitter needed
-    fake_true_clause, fake_true_truth_list, fake_true_clauses = splitter(clauses, truth_list)
+    fake_true_clause, fake_true_truth_list, fake_true_clauses = splitter(clauses)
 
     SATTER = unsat_or_sat(fake_true_clauses, fake_true_truth_list, N)
 
@@ -291,15 +302,75 @@ def dpll_main(clauses, N) -> bool:
         return True
     elif SATTER == -1:
         # It was unsat, so fake_true_clause CANNOT be TRUE
-        clauses.append(-fake_true_clause)
+        clauses.append([-fake_true_clause])
         return dpll_main(clauses, N) # Can go on forever?
 
     else: # unsure -> will loop on and on?
-        next_clause, next_truth, next_clauses = splitter(clauses, truth_list)
-        return dpll_main(next_clauses, N)
+        next_clause, next_truth, next_clauses = splitter(clauses)
+        return dpll_main(next_clauses, N) 
+
+from typing import Optional
+def get_rcv(unit: int, N = 9) -> Optional[Tuple[int, int, int]]:
+    #unit = row * N*N + column * N + value
+
+    for v in range(1, N + 1): # loop over values
+        row_and_column_N = unit - v
+        if row_and_column_N % N == 0:                   # N(Nrow + column)
+            value = v
+            row_and_column = row_and_column_N // N       #Nrow + column
+            for c in range(N):
+                Nrow = row_and_column - c               #Nrow
+                if Nrow % N == 0:
+                    column = c
+                    row = Nrow // N
+                    return row, column, value
+    # Got this from chat
+    value = (unit - 1) % N + 1
+    column = ((unit - 1) // N) % N
+    row = (unit - 1) // (N * N)
+
+    return None
+
+import math
+
+def move_that_box(new_box: list[int], varnum: int, N = 9) -> int:
+
+    r_old, c_old, value = get_rcv(varnum, N)
+
+    # Find coordinate within old box
+    B_size = math.sqrt(N)
+    r_in_old_box = (r_old + 1) % B_size
+    c_in_old_box = (c_old + 1) % B_size
+
+    # Find new value_number
+    r_new = (new_box[0]) * B_size + r_in_old_box
+    c_new = (new_box[1]) * B_size + c_in_old_box
+    value_number = varnumber(r_new, c_new, value, N)
+
+    return value_number
+
+def move_those_values(ready2move: list[list[int]], k: int) -> list[int]:
+    # Need to hardcode or nah?
+    moved_list = []
+    if k == 0:
+        return moved_list
+    elif k == 9:    # k = 9:        3x3 -> 1x1
+        for item in ready2move[0]:
+            moved_list.append(move_that_box([1,1], item))
+        return moved_list
+    elif k == 18:   # k = 18:       3x2 -> 1x1, 3x3 -> 1x2
+        for item in ready2move[0]:
+            moved_list.append(move_that_box([1,1], item)) # 3x2 -> 1x1
+        for item in ready2move[1]:
+            moved_list.append(move_that_box([1,2], item)) # 3x3 -> 1x2
+    elif k == 27:
 
 
 
+
+    # k = 27:       3x1 -> 1x1, 3x2 -> 1x2, 3x3 -> 1x3
+    # k = 36:       2x2 -> 1x1, 2x3 -> 1x2, 3x2 -> 2x1, 3x3 -> 2x2
+    return moved_list
 
 import copy
 
@@ -331,7 +402,8 @@ def dpll(clauses, N) -> bool:
 
 
 if __name__== "__main__":
-    clauses, n = to_cnf("example_n9.txt")
+    file_path = "../EXAMPLE puzzles (input)/example_n16.txt"
+    clauses, n = to_cnf(file_path)
     #print(clauses)
     # test 1
     #clauses = [[9, 3],[9],[4,2],[-9,4],[5,7],[1,-1],[1,3],[-2,-7],[-7,-5]]
