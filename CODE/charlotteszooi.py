@@ -350,7 +350,7 @@ def move_that_box(new_box: list[int], varnum: int, N = 9) -> int:
     return value_number
 
 def move_those_values(ready2move: list[list[int]], k: int) -> list[int]:
-    # Need to hardcode or nah?
+    # This function is a tad hardcoded, but does make it easier to read what is going on
     moved_list = []
     if k == 0:
         return moved_list
@@ -363,14 +363,75 @@ def move_those_values(ready2move: list[list[int]], k: int) -> list[int]:
             moved_list.append(move_that_box([1,1], item)) # 3x2 -> 1x1
         for item in ready2move[1]:
             moved_list.append(move_that_box([1,2], item)) # 3x3 -> 1x2
-    elif k == 27:
+    elif k == 27:   # k = 27:       3x1 -> 1x1, 3x2 -> 1x2, 3x3 -> 1x3
+        for item in ready2move[0]:
+            moved_list.append(move_that_box([1,1], item))
+        for item in ready2move[1]:
+            moved_list.append(move_that_box([1,2], item))
+        for item in ready2move[2]:
+            moved_list.append(move_that_box([1,3], item))
+    elif k == 36:   # k = 36:       2x2 -> 1x1, 2x3 -> 1x2, 3x2 -> 2x1, 3x3 -> 2x2
+        for item in ready2move[0]:
+            moved_list.append(move_that_box([1,1], item))
+        for item in ready2move[1]:
+            moved_list.append(move_that_box([1,2], item))
+        for item in ready2move[2]:
+            moved_list.append(move_that_box([2,1], item))
+        for item in ready2move[3]:
+            moved_list.append(move_that_box([2,2], item))
 
-
-
-
-    # k = 27:       3x1 -> 1x1, 3x2 -> 1x2, 3x3 -> 1x3
-    # k = 36:       2x2 -> 1x1, 2x3 -> 1x2, 3x2 -> 2x1, 3x3 -> 2x2
     return moved_list
+
+def find_values_for_moving(truth_list: list[int], k: int) -> list[list[int]]:
+    # Have a truth_list!
+    truth_list = list_only_positive(truth_list)
+    dict_truth = dict()
+    N, B = 9, 3
+
+    for truth in truth_list:
+        r, c, v = get_rcv(truth, N)
+        dict_truth[[r, c]] = v
+
+    overlapping_values = [[]]
+    if k == 0:
+        return overlapping_values
+    elif k == 9:    # k = 9:        3x3 -> 1x1
+        for i in range(6, 9):
+            for j in range(6,9):
+                overlapping_values[0].append(varnumber(i, j, dict_truth[[i, j]], N))
+    elif k == 18:   # k = 18:       3x2 -> 1x1, 3x3 -> 1x2
+        for i in range(6, 9): # 3x2
+            for j in range(3, 6):
+                overlapping_values[0].append(varnumber(i, j, dict_truth[[i, j]], N))
+        for i in range(6, 9): # 3x3
+            for j in range(6, 9):
+                overlapping_values[1].append(varnumber(i, j, dict_truth[[i, j]], N))
+    elif k == 27:   # k = 27:       3x1 -> 1x1, 3x2 -> 1x2, 3x3 -> 1x3
+        for i in range(6, 9): # 3x1
+            for j in range(0, 3):
+                overlapping_values[0].append(varnumber(i, j, dict_truth[[i, j]], N))
+        for i in range(6, 9): # 3x2
+            for j in range(3, 6):
+                overlapping_values[1].append(varnumber(i, j, dict_truth[[i, j]], N))
+        for i in range(6, 9): # 3x3
+            for j in range(6, 9):
+                overlapping_values[2].append(varnumber(i, j, dict_truth[[i, j]], N))
+    elif k == 36:   # k = 36:       2x2 -> 1x1, 2x3 -> 1x2, 3x2 -> 2x1, 3x3 -> 2x2
+        for i in range(3, 6): # 2x2
+            for j in range(3, 6):
+                overlapping_values[0].append(varnumber(i, j, dict_truth[[i, j]], N))
+        for i in range(3, 6): # 2x3
+            for j in range(6, 9):
+                overlapping_values[1].append(varnumber(i, j, dict_truth[[i, j]], N))
+        for i in range(6, 9): # 3x2
+            for j in range(3, 6):
+                overlapping_values[2].append(varnumber(i, j, dict_truth[[i, j]], N))
+        for i in range(6, 9): # 3x3
+            for j in range(6, 9):
+                overlapping_values[3].append(varnumber(i, j, dict_truth[[i, j]], N))
+
+    return overlapping_values
+
 
 import copy
 
