@@ -3,7 +3,7 @@ import sys
 import os
 from encoder import to_cnf  
 # from generator import generate_twodoku_sudoku, grid_to_string
-from box_gen import generate_twodoku_puzzles_from_scratch
+from box_gen import generate_twodoku_puzzles_from_scratch, solve_nonconsecutive, generate_full_nonconsecutive_solution, puzzle_from_solution
 
 def write_dimacs(target, num_vars: int, clauses) -> None:
     """Write DIMACS CNF to a file path or file-like (stdout)."""
@@ -102,7 +102,19 @@ def main():
     k        = 9    # grootte overlapvorm
 
     puzzle_A, puzzle_B, B_after_overlap, overlap_A, overlap_B = \
-        generate_twodoku_puzzles_from_scratch(filled_A, filled_B, k)
+         generate_twodoku_puzzles_from_scratch(filled_A, filled_B, k)
+    
+    
+    solution_A = generate_full_nonconsecutive_solution()
+    puzzle_A = puzzle_from_solution(solution_A, filled_A)
+
+    solution_B = [row[:] for row in B_after_overlap]
+    solve_nonconsecutive(solution_B)     # vult hem verder in
+    puzzle_B = puzzle_from_solution(solution_B, filled_B)
+
+
+
+
     print("Puzzle A", grid_to_string(puzzle_A))
     print("Puzzle B", grid_to_string(puzzle_A))
     str_a = grid_to_string(puzzle_A)
@@ -125,9 +137,10 @@ def main():
     # Same base name as puzzle, but .cnf extension
     cnf_path_A = "D:\School\M Artificial Intelligence\KR\A3" + ".grida"
     cnf_path_B = "D:\School\M Artificial Intelligence\KR\A3" + ".gridb"
+    
     write_dimacs(cnf_path_A, num_vars_A, clauses_A)
     write_dimacs(cnf_path_B, num_vars_B, clauses_B)
-    # Solve the TwoDoku puzzl
+    # # Solve the TwoDoku puzzl
 
 if __name__ == "__main__":
     main()

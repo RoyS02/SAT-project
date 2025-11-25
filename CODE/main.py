@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+
 """
 SAT Assignment Part 2 - Non-consecutive Sudoku Solver (puzzle -> SAT/UNSAT)
 

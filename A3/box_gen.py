@@ -27,7 +27,56 @@ def sudoku_valid_check(grid: List[List[int]], r: int, c: int, v: int) -> bool:
         for cc in range(bc, bc + 3):
             if grid[rr][cc] == v:
                 return False
+            
+    # Non-consecutive: orthogonal neighbors cannot differ by 1
+    orth_dirs = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+    for dr, dc in orth_dirs:
+        rr, cc = r + dr, c + dc
+        if 0 <= rr < 9 and 0 <= cc < 9:
+            neighbor_val = grid[rr][cc]
+            if neighbor_val != 0 and abs(neighbor_val - v) == 1:
+                # dan zouden ze v en v±1 zijn → verboden
+                return False
+        
     return True
+
+
+def solve_nonconsecutive(grid):
+    for r in range(9):
+        for c in range(9):
+            if grid[r][c] == 0:
+                vals = list(range(1, 10))
+                random.shuffle(vals)
+                for v in vals:
+                    if sudoku_valid_check(grid, r, c, v):
+                        grid[r][c] = v
+                        if solve_nonconsecutive(grid):
+                            return True
+                        grid[r][c] = 0
+                return False
+    return True
+
+def generate_full_nonconsecutive_solution():
+    grid = [[0]*9 for _ in range(9)]
+    solve_nonconsecutive(grid)
+    return grid
+
+def puzzle_from_solution(solution, filled_percentage):
+    puzzle = [row[:] for row in solution]
+    total = 81
+    keep = int(total * filled_percentage)
+
+    cells = [(r,c) for r in range(9) for c in range(9)]
+    random.shuffle(cells)
+
+    to_remove = total - keep
+    for (r,c) in cells:
+        if to_remove == 0:
+            break
+        puzzle[r][c] = 0
+        to_remove -= 1
+
+    return puzzle
 
 def varnumber(row: int, column: int, value: int, N: int = N_DEFAULT) -> int:
     """
@@ -329,15 +378,15 @@ def generate_twodoku_puzzles_from_scratch(
 
     return puzzle_A, puzzle_B, B_after_overlap, overlap_coords_A, overlap_coords_B
 
-def main():
-    filled_A = 0.4   # 40% clues in A
-    filled_B = 0.4   # 40% clues in B (incl. overlap)
-    k        = 9    # grootte overlapvorm
+# def main():
+    # filled_A = 0.4   # 40% clues in A
+    # filled_B = 0.4   # 40% clues in B (incl. overlap)
+    # k        = 9    # grootte overlapvorm
 
-    puzzle_A, puzzle_B, B_after_overlap, overlap_A, overlap_B = \
-        generate_twodoku_puzzles_from_scratch(filled_A, filled_B, k)
-    print("Puzzle A", puzzle_A)
-    print("Puzzle B", puzzle_B)
+    # puzzle_A, puzzle_B, B_after_overlap, overlap_A, overlap_B = \
+    #     generate_twodoku_puzzles_from_scratch(filled_A, filled_B, k)
+    # print("Puzzle A", puzzle_A)
+#     # print("Puzzle B", puzzle_B)
 
-if __name__== "__main__":
-    main()
+# if __name__== "__main__":
+#     main()
