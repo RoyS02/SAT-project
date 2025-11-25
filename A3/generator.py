@@ -21,36 +21,6 @@ def write_grid_to_file(grid, path):
             line = " ".join(str(x) for x in row)
             f.write(line + "\n")
 
-def parse_tuple(tuple):
-    try:
-        a, b = tuple.split(",")
-        return int(a), int(b)
-    except:
-        raise argparse.ArgumentTypeError("Tuples must be in format: x,y")
-
-def parse_args():
-    p = argparse.ArgumentParser()
-    p.add_argument("--filled_percentage", "-f",
-                    type=float,
-                    default=0.5)
-    p.add_argument("--rows", "-r",
-                    type=int,
-                    default=15)
-    p.add_argument("--columns", "-c",
-                    type=int,
-                    default=15)
-    p.add_argument("--sudoku_one", "-s1",
-                    type=parse_tuple,
-                    default=(0, 0))
-    p.add_argument("--sudoku_two", "-s2",
-                    type=parse_tuple,
-                    default=(6, 6))
-    p.add_argument("--out", 
-                   dest="out", 
-                   default=None, 
-                   help="Path to write DIMACS CNF (stdout if omitted)")
-    return p.parse_args()
-
 #####################
 # TwoDoku Generator #
 ######################
@@ -94,7 +64,7 @@ def generate_twodoku_sudoku(
                 grid[r][c] = -1
     return grid
 
-def main():
+"""def main():
     args = parse_args()
     if args.out:
         if "." in args.out:
@@ -119,7 +89,5 @@ def main():
         with open(filename, "w") as f:
             f.write(output_str + "\n")
 
-        print(f"Created {filename}")
-
 if __name__ == "__main__":
-    main()
+    main()"""
