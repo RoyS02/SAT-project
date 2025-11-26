@@ -1,6 +1,7 @@
 from typing import List, Tuple, Optional, Iterable
 from collections import defaultdict, deque
-
+DPLL_CALLS = 0
+MAX_DPLL_CALLS = 100_000 
 
 def pure_literal(clauses: List[List[int]]) -> Tuple[List[List[int]], List[int]]:
     """
@@ -110,9 +111,13 @@ def DPLL(clauses: List[List[int]], num_vars: int, assignment: Optional[List[int]
     """
     DPLL algorithm with unit propagation and DLIS heuristic.
     """
-    global DPLL_CALLS
-    DPLL_CALLS += 1
+    global DPLL_CALLS, MAX_DPLL_CALLS
 
+    if DPLL_CALLS >= MAX_DPLL_CALLS:
+        return False, []
+
+    DPLL_CALLS += 1
+    print("number of dpll calls: ", DPLL_CALLS)
     # Check if assignment is empty, if so, initialize it
     if assignment is None:
         assignment = []
