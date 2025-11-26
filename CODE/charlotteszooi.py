@@ -324,6 +324,7 @@ def get_rcv(unit: int, N = 9) -> Optional[Tuple[int, int, int]]:
                     column = c
                     row = Nrow // N
                     return row, column, value
+
     # Got this from chat
     value = (unit - 1) % N + 1
     column = ((unit - 1) // N) % N
@@ -432,6 +433,8 @@ def find_values_for_moving(truth_list: list[int], k: int) -> list[list[int]]:
 
     return overlapping_values
 
+def statistical_analysis(results: list[list[int]]):
+    return 
 
 import copy
 
