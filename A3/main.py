@@ -99,24 +99,18 @@ def main():
         """
     filled_A = 0.4   # 40% clues in A
     filled_B = 0.4   # 40% clues in B (incl. overlap)
-    k        = 9    # grootte overlapvorm
+    k        = 18    # Permitted values are 9,18,27 and 36
+
+    cnf_dir = os.path.join(os.path.dirname(__file__), "CNF encoding")
+    os.makedirs(cnf_dir, exist_ok=True)
 
     puzzle_A, puzzle_B, B_after_overlap, overlap_A, overlap_B = \
          generate_twodoku_puzzles_from_scratch(filled_A, filled_B, k)
     
-    
-    solution_A = generate_full_nonconsecutive_solution()
-    puzzle_A = puzzle_from_solution(solution_A, filled_A)
-
-    solution_B = [row[:] for row in B_after_overlap]
-    solve_nonconsecutive(solution_B)     # vult hem verder in
-    puzzle_B = puzzle_from_solution(solution_B, filled_B)
-
-
-
-
     print("Puzzle A", grid_to_string(puzzle_A))
-    print("Puzzle B", grid_to_string(puzzle_A))
+    print("Puzzle B", grid_to_string(puzzle_B))
+    
+
     str_a = grid_to_string(puzzle_A)
     str_b = grid_to_string(puzzle_B)
   
@@ -133,14 +127,12 @@ def main():
     clauses_A, num_vars_A = to_cnf(filename_A)
     clauses_B, num_vars_B = to_cnf(filename_B)
 
-
-    # Same base name as puzzle, but .cnf extension
-    cnf_path_A = "D:\School\M Artificial Intelligence\KR\A3" + ".grida"
-    cnf_path_B = "D:\School\M Artificial Intelligence\KR\A3" + ".gridb"
-    
-    write_dimacs(cnf_path_A, num_vars_A, clauses_A)
-    write_dimacs(cnf_path_B, num_vars_B, clauses_B)
-    # # Solve the TwoDoku puzzl
+    path_suA = os.path.join(cnf_dir, "sudoku.A")
+    path_suB = os.path.join(cnf_dir, "sudoku.B")
+        
+    write_dimacs(path_suA, num_vars_A, clauses_A)
+    write_dimacs(path_suB, num_vars_B, clauses_B)
+    # # # Solve the TwoDoku puzzl
 
 if __name__ == "__main__":
     main()
