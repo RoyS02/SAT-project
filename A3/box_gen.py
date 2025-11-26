@@ -5,14 +5,14 @@ import math
 
 N_DEFAULT = 9
 
-
 ####################
 # Helper functions #
 ####################
 
 def sudoku_valid_check(grid: List[List[int]], r: int, c: int, v: int) -> bool:
     """
-    Check if values in sudoku are valid
+    Check if generated values in sudoku's are valid by checking consecutive sudoku rules
+    and non-consecutive orthogonal rule.
     """
     # Check row validity 
     if any(grid[r][cc] == v for cc in range(9)):
@@ -21,21 +21,20 @@ def sudoku_valid_check(grid: List[List[int]], r: int, c: int, v: int) -> bool:
     if any(grid[rr][c] == v for rr in range(9)):
         return False
     # Check box validity 
-    br = (r // 3) * 3
-    bc = (c // 3) * 3
-    for rr in range(br, br + 3):
-        for cc in range(bc, bc + 3):
+    box_row = (r // 3) * 3
+    box_column = (c // 3) * 3
+    for rr in range(box_row, box_row + 3):
+        for cc in range(box_column, box_column + 3):
             if grid[rr][cc] == v:
                 return False
             
-    # Non-consecutive: orthogonal neighbors cannot differ by 1
-    orth_dirs = [(0, 1), (1, 0), (0, -1), (-1, 0)]
-    for dr, dc in orth_dirs:
+    # Check orthogonal validity
+    directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+    for dr, dc in directions:
         rr, cc = r + dr, c + dc
         if 0 <= rr < 9 and 0 <= cc < 9:
             neighbor_val = grid[rr][cc]
             if neighbor_val != 0 and abs(neighbor_val - v) == 1:
-                # dan zouden ze v en v±1 zijn → verboden
                 return False
         
     return True
@@ -219,58 +218,58 @@ def extract_overlap_varnums_from_puzzle(grid_A: List[List[int]], k: int) -> List
         for i in range(6, 9):
             for j in range(6, 9):
                 v = grid_A[i][j]
-                if v != 0:
+                if v >= 0:
                     overlapping_values[0].append(varnumber(i, j, v, N))
 
     elif k == 18:   # 3x2 -> g0, 3x3 -> g1
         for i in range(6, 9):      # 3x2 (r=6..8, c=3..5)
             for j in range(3, 6):
                 v = grid_A[i][j]
-                if v != 0:
+                if v >= 0:
                     overlapping_values[0].append(varnumber(i, j, v, N))
         for i in range(6, 9):      # 3x3 (r=6..8, c=6..8)
             for j in range(6, 9):
                 v = grid_A[i][j]
-                if v != 0:
+                if v >= 0:
                     overlapping_values[1].append(varnumber(i, j, v, N))
 
     elif k == 27:   # 3x1 -> g0, 3x2 -> g1, 3x3 -> g2
         for i in range(6, 9):      # 3x1 (c=0..2)
             for j in range(0, 3):
                 v = grid_A[i][j]
-                if v != 0:
+                if v >= 0:
                     overlapping_values[0].append(varnumber(i, j, v, N))
         for i in range(6, 9):      # 3x2 (c=3..5)
             for j in range(3, 6):
                 v = grid_A[i][j]
-                if v != 0:
+                if v >= 0:
                     overlapping_values[1].append(varnumber(i, j, v, N))
         for i in range(6, 9):      # 3x3 (c=6..8)
             for j in range(6, 9):
                 v = grid_A[i][j]
-                if v != 0:
+                if v >= 0:
                     overlapping_values[2].append(varnumber(i, j, v, N))
 
     elif k == 36:   # 2x2 -> g0, 2x3 -> g1, 3x2 -> g2, 3x3 -> g3
         for i in range(3, 6):      # 2x2 (r=3..5, c=3..5)
             for j in range(3, 6):
                 v = grid_A[i][j]
-                if v != 0:
+                if v >= 0:
                     overlapping_values[0].append(varnumber(i, j, v, N))
         for i in range(3, 6):      # 2x3 (r=3..5, c=6..8)
             for j in range(6, 9):
                 v = grid_A[i][j]
-                if v != 0:
+                if v >= 0:
                     overlapping_values[1].append(varnumber(i, j, v, N))
         for i in range(6, 9):      # 3x2 (r=6..8, c=3..5)
             for j in range(3, 6):
                 v = grid_A[i][j]
-                if v != 0:
+                if v >= 0:
                     overlapping_values[2].append(varnumber(i, j, v, N))
         for i in range(6, 9):      # 3x3 (r=6..8, c=6..8)
             for j in range(6, 9):
                 v = grid_A[i][j]
-                if v != 0:
+                if v >= 0:
                     overlapping_values[3].append(varnumber(i, j, v, N))
 
     return overlapping_values
@@ -328,55 +327,112 @@ def generate_twodoku_puzzles_from_scratch(
     filled_A: float,
     filled_B: float,
     k: int
-) -> Tuple[List[List[int]], List[List[int]], List[List[int]], Set[Tuple[int, int]], Set[Tuple[int, int]]]:
+) -> Tuple[List[List[int]], List[List[int]], List[List[int]],
+           Set[Tuple[int, int]], Set[Tuple[int, int]]]:
     """
-    Function that actually generates the grids.
-    1. Generate sudoku A with x% clues based on filled_percentage
-    2. Find the overlapping region in sudoku A for sudoku B based on value K
-    3. Fill Sudoku B with overlapping region
-    4. Top up sudoku B with clues based on filled percentage
+    New version:
 
-    Function gives two sudoku's. These can be solved individually by given SAT-solver
+    1. Generate a full nonconsecutive solution for Sudoku A.
+    2. Take the overlap region from A's *solution* (based on k).
+    3. Map that region into Sudoku B (same digits, same cell positions in the box).
+    4. Solve B with those overlap cells fixed.
+       - If no solution, restart with a new solution_A.
+    5. Generate puzzles from both solutions.
+    6. Force the puzzles so that the overlap region of A and B has:
+       - the same pattern of clues/zeros
+       - the same digits where clues are present.
 
-    RETURN:
+    Returns:
       - puzzle_A (9x9)
       - puzzle_B (9x9)
-      - B_after_overlap (temp: B directly after step 3 for debug purposes)
-      - overlap_coords_A : set[(r,c)] in A
-      - overlap_coords_B : set[(r,c)] in B
+      - B_after_overlap (B grid right after copying overlap from A, before solving)
+      - overlap_coords_A: set of (r,c) in A's overlap region
+      - overlap_coords_B: set of (r,c) in B's overlap region
     """
 
-    # Step 1
-    puzzle_A = generate_random_sudoku_puzzle(filled_A)
+    N = 9
+    B_size = 3  # standard Sudoku
 
-    # Step 2
-    groups_A = extract_overlap_varnums_from_puzzle(puzzle_A, k)
+    filled_A = max(0.0, min(1.0, filled_A))
+    filled_B = max(0.0, min(1.0, filled_B))
 
-    # Coordinates overlap of sudoku A
-    overlap_coords_A: Set[Tuple[int, int]] = set()
-    for group in groups_A:
-        for vn in group:
-            r, c, _ = get_rcv(vn)  
-            overlap_coords_A.add((r, c))
 
-    # Step 3
-    overlap_varnums_B = move_those_values(groups_A, k)
-    puzzle_B = [[0] * 9 for _ in range(9)]
-    apply_truths_to_grid(puzzle_B, overlap_varnums_B)
+    # We loop until we find a pair (solution_A, solution_B) that is compatible
+    # under the requested overlap.
+    while True:
+        # 1) Full solution for A
+        solution_A = generate_full_nonconsecutive_solution()
 
-    # Coordinates overlap of sudoku B
-    overlap_coords_B: Set[Tuple[int, int]] = set()
-    for vn in overlap_varnums_B:
-        r, c, _ = get_rcv(vn)  
-        overlap_coords_B.add((r, c))
+        # 2) Build overlap from A's solution (reuse your extraction function)
+        groups_A = extract_overlap_varnums_from_puzzle(solution_A, k)
 
-    # Debug function
-    B_after_overlap = [row[:] for row in puzzle_B]
+        # Flatten groups_A keeping order (this order must match move_those_values)
+        flat_varnums_A: List[int] = []
+        for g in groups_A:
+            flat_varnums_A.extend(g)
 
-    # Step 4 
-    generate_clues_in_B(puzzle_B, filled_B, overlap_coords_B)
+        # 3) Map that overlap into B
+        overlap_varnums_B = move_those_values(groups_A, k)
+
+        # B grid with only the overlap cells set
+        solution_B = [[0] * N for _ in range(N)]
+        apply_truths_to_grid(solution_B, overlap_varnums_B)
+
+        # Keep a copy for debug / returning
+        B_after_overlap = [row[:] for row in solution_B]
+
+        # 4) Solve B with overlap fixed
+        if not solve_nonconsecutive(solution_B):
+            # This overlap is incompatible with any completion of B → try again
+            continue
+
+        # If we get here, we have consistent solutions A and B with correct overlap
+        # 5) Build coordinate sets and mapping A -> B
+        overlap_coords_A: Set[Tuple[int, int]] = set()
+        overlap_coords_B: Set[Tuple[int, int]] = set()
+        mapping_A_to_B: List[Tuple[Tuple[int, int], Tuple[int, int]]] = []
+
+        # Reconstruct the mapping by pairing flat_varnums_A with overlap_varnums_B
+        if len(flat_varnums_A) != len(overlap_varnums_B):
+            # This should not happen if move_those_values is consistent
+            raise RuntimeError("Mismatch between A and B overlap varnums length")
+
+        for vnA, vnB in zip(flat_varnums_A, overlap_varnums_B):
+            ra, ca, va = get_rcv(vnA)
+            rb, cb, vb = get_rcv(vnB)
+            overlap_coords_A.add((ra, ca))
+            overlap_coords_B.add((rb, cb))
+            mapping_A_to_B.append(((ra, ca), (rb, cb)))
+
+            # Sanity check: solutions must agree on the digit
+            if solution_A[ra][ca] != solution_B[rb][cb]:
+                raise RuntimeError("Overlap solutions A/B disagree on digit; check mapping logic")
+
+        # 6) Generate puzzles from both solutions
+        puzzle_A = puzzle_from_solution(solution_A, filled_A)
+        puzzle_B = puzzle_from_solution(solution_B, filled_B)
+
+        # 7) Enforce identical overlap pattern between puzzle_A and puzzle_B:
+        #    - If A has 0 at (ra, ca) → B must also be 0 at mapped (rb, cb)
+        #    - If A has a digit → B must show the corresponding digit.
+        for (ra, ca), (rb, cb) in mapping_A_to_B:
+            if puzzle_A[ra][ca] == 0:
+                # Both show empty
+                puzzle_B[rb][cb] = 0
+            else:
+                # A shows a clue → set both to the correct solution digit
+                digit_A = solution_A[ra][ca]
+                digit_B = solution_B[rb][cb]
+                # They should be equal by construction
+                assert digit_A == digit_B
+                puzzle_A[ra][ca] = digit_A
+                puzzle_B[rb][cb] = digit_B
+
+        # We have a consistent pair, break the loop
+        break
 
     return puzzle_A, puzzle_B, B_after_overlap, overlap_coords_A, overlap_coords_B
+
 
 # def main():
     # filled_A = 0.4   # 40% clues in A
